@@ -13,9 +13,13 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 
-characters = [k.split('/')[2] for k in glob.glob('./characters/*') if len([p for p in glob.glob(k+'/*') 
-                                                                           if 'edited' in p or 'pic_vid' in p]) > 300]
-map_characters = dict(enumerate(characters))
+# characters = [k.split('/')[2] for k in glob.glob('./characters/*') if len([p for p in glob.glob(k+'/*') 
+#                                                                            if 'edited' in p or 'pic_vid' in p]) > 300]
+# map_characters = dict(enumerate(characters))
+map_characters = {0: 'abraham_grampa_simpson', 1: 'bart_simpson', 
+                  2: 'charles_montgomery_burns', 3: 'homer_simpson', 4: 'krusty_the_clown',
+                  5: 'lisa_simpson', 6: 'marge_simpson', 7: 'moe_szyslak', 
+                  8: 'ned_flanders', 9: 'sideshow_bob'}
 pic_size = 64
 batch_size = 32
 epochs = 200
@@ -28,34 +32,44 @@ def load_pictures():
         pictures = [k for k in glob.glob('./characters/%s/*' % char) if 'edited' in k 
                                                                      or 'pic_vid' in k]
         shuffle(pictures)
-        for pic in pictures[:1000]:
+        for pic in pictures[:1500]:
             a = cv2.imread(pic)
             a = cv2.resize(a, (pic_size,pic_size))
             pics.append(a)
             labels.append(k)
     return np.array(pics), np.array(labels) 
 
-def get_dataset(save=False):
-    X, y = load_pictures()
-    y = keras.utils.to_categorical(y, num_classes)
-    if save:
-        h5f = h5py.File('dataset.h5', 'w')
-        h5f.create_dataset('dataset', data=X)
-        h5f.close()
+def get_dataset(save=False, load=False):
+    if load:
+        h5f = h5py.File('dataset.h5','r')
+        X = h5f['dataset'][:]
+        h5f.close()    
 
-        h5f = h5py.File('labels.h5', 'w')
-        h5f.create_dataset('labels', data=y)
-        h5f.close()
+        h5f = h5py.File('labels.h5','r')
+        y = h5f['labels'][:]
+        h5f.close()    
+    else:
+        X, y = load_pictures()
+        y = keras.utils.to_categorical(y, num_classes)
+        if save:
+            h5f = h5py.File('dataset.h5', 'w')
+            h5f.create_dataset('dataset', data=X)
+            h5f.close()
+
+            h5f = h5py.File('labels.h5', 'w')
+            h5f.create_dataset('labels', data=y)
+            h5f.close()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
     X_train = X_train.astype('float32')
     X_test = X_test.astype('float32')
     X_train /= 255
     X_test /= 255
-    print("Train", X_train, y_train.shape)
-    print("Test", X_test, y_test.shape)
-    print('Train :')
-    print('\n'.join(["%s : %d pictures" % (map_characters[k], v) 
-        for k,v in sorted(Counter(np.where(y_train==1)[1]).items(), key=lambda x:x[1], reverse=True)]))
+    print("Train", X_train.shape, y_train.shape)
+    print("Test", X_test.shape, y_test.shape)
+    if not load:
+        print('Train :')
+        print('\n'.join(["%s : %d pictures" % (map_characters[k], v) 
+            for k,v in sorted(Counter(np.where(y_train==1)[1]).items(), key=lambda x:x[1], reverse=True)]))
     return X_train, X_test, y_train, y_test
 
 def create_model(input_shape):
@@ -100,16 +114,16 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True):
         # Compute quantities required for feature-wise normalization
         # (std, mean, and principal components if ZCA whitening is applied).
         datagen.fit(X_train)
-        model.fit_generator(datagen.flow(X_train, y_train,
+        history = model.fit_generator(datagen.flow(X_train, y_train,
                                      batch_size=batch_size),
                         steps_per_epoch=X_train.shape[0] // batch_size,
                         epochs=epochs,
                         validation_data=(X_test, y_test))
         
     else:
-        model.fit(X_train, y_train,
+        history = model.fit(X_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
           validation_data=(X_test, y_test),
           shuffle=True)
-    return model
+    return model, history
