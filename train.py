@@ -5,6 +5,7 @@ import pickle
 import h5py
 from sklearn.model_selection import train_test_split
 import glob
+from random import shuffle
 from collections import Counter
 import keras
 from keras.preprocessing.image import ImageDataGenerator
@@ -26,7 +27,8 @@ def load_pictures():
     for k, char in map_characters.items():
         pictures = [k for k in glob.glob('./characters/%s/*' % char) if 'edited' in k 
                                                                      or 'pic_vid' in k]
-        for pic in pictures:
+        shuffle(pictures)
+        for pic in pictures[:1000]:
             a = cv2.imread(pic)
             a = cv2.resize(a, (pic_size,pic_size))
             pics.append(a)
