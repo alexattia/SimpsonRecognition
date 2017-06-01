@@ -9,9 +9,11 @@ from random import shuffle
 from collections import Counter
 import keras
 from keras.preprocessing.image import ImageDataGenerator
+from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+from keras.optimizers import SGD
 
 # characters = [k.split('/')[2] for k in glob.glob('./characters/*') if len([p for p in glob.glob(k+'/*') 
 #                                                                            if 'edited' in p or 'pic_vid' in p]) > 300]
@@ -72,7 +74,7 @@ def get_dataset(save=False, load=False):
             for k,v in sorted(Counter(np.where(y_train==1)[1]).items(), key=lambda x:x[1], reverse=True)]))
     return X_train, X_test, y_train, y_test
 
-def create_model(input_shape):
+def create_model_four_conv(input_shape):
     model = Sequential()
     model.add(Conv2D(32, (3, 3), padding='same',
                  input_shape=input_shape))
@@ -98,7 +100,43 @@ def create_model(input_shape):
     opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
     return model, opt
 
-def training(model, X_train, X_test, y_train, y_test, data_augmentation=True):
+def create_model_six_conv(input_shape):
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), padding='same', 
+                            input_shape=input_shape))
+    model.add(Activation('relu'))
+    model.add(Conv2D(32, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.2))
+
+    model.add(Conv2D(64, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(64, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.2))
+
+    model.add(Conv2D(128, (3, 3), padding='same')) 
+    model.add(Activation('relu'))
+    model.add(Conv2D(128, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.2))
+
+    model.add(Flatten())
+    model.add(Dense(512))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes, activation='softmax'))
+    opt = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    return model, opt
+
+def lr_schedule(epoch):
+    lr = 0.01
+    return lr*(0.1**int(epoch/10))
+
+def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, six_conv=False):
     if data_augmentation:
         datagen = ImageDataGenerator(
             featurewise_center=False,  # set input mean to 0 over the dataset
@@ -114,11 +152,20 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True):
         # Compute quantities required for feature-wise normalization
         # (std, mean, and principal components if ZCA whitening is applied).
         datagen.fit(X_train)
-        history = model.fit_generator(datagen.flow(X_train, y_train,
-                                     batch_size=batch_size),
-                        steps_per_epoch=X_train.shape[0] // batch_size,
-                        epochs=epochs,
-                        validation_data=(X_test, y_test))
+        if six_conv:
+            history = model.fit_generator(datagen.flow(X_train, y_train,
+                                         batch_size=batch_size),
+                            steps_per_epoch=X_train.shape[0] // batch_size,
+                            epochs=40,
+                            validation_data=(X_test, y_test),
+                            callbacks=[LearningRateScheduler(lr_schedule),
+                                        ModelCheckpoint('model_6conv.h5',save_best_only=True)])
+        else:
+            history = model.fit_generator(datagen.flow(X_train, y_train,
+                                         batch_size=batch_size),
+                            steps_per_epoch=X_train.shape[0] // batch_size,
+                            epochs=epochs,
+                            validation_data=(X_test, y_test))
         
     else:
         history = model.fit(X_train, y_train,
