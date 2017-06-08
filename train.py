@@ -145,7 +145,7 @@ def lr_schedule(epoch):
     lr = 0.01
     return lr*(0.1**int(epoch/10))
 
-def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, six_conv=False):
+def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, callback=False, six_conv=False):
     if data_augmentation:
         datagen = ImageDataGenerator(
             featurewise_center=False,  # set input mean to 0 over the dataset
@@ -170,12 +170,22 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, si
                             callbacks=[LearningRateScheduler(lr_schedule),
                                         ModelCheckpoint('model_6conv.h5',save_best_only=True)])
         else:
-            history = model.fit_generator(datagen.flow(X_train, y_train,
-                                         batch_size=batch_size),
+            if callback:
+                filepath="weights.best.hdf5"
+                checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
+                callbacks_list = [checkpoint]
+                history = model.fit_generator(datagen.flow(X_train, y_train,
+                                             batch_size=batch_size),
+                                            steps_per_epoch=X_train.shape[0] // batch_size,
+                                            epochs=epochs,
+                                            callbacks=callbacks_list,
+                                            validation_data=(X_test, y_test))
+            else: 
+                history = model.fit_generator(datagen.flow(X_train, y_train,
+                             batch_size=batch_size),
                             steps_per_epoch=X_train.shape[0] // batch_size,
                             epochs=epochs,
                             validation_data=(X_test, y_test))
-        
     else:
         history = model.fit(X_train, y_train,
           batch_size=batch_size,
