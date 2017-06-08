@@ -15,13 +15,17 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.optimizers import SGD, Adam
 
-# characters = [k.split('/')[2] for k in glob.glob('./characters/*') if len([p for p in glob.glob(k+'/*') 
-#                                                                            if 'edited' in p or 'pic_vid' in p]) > 300]
-# map_characters = dict(enumerate(characters))
-map_characters = {0: 'abraham_grampa_simpson', 1: 'bart_simpson', 
-                  2: 'charles_montgomery_burns', 3: 'homer_simpson', 4: 'krusty_the_clown',
-                  5: 'lisa_simpson', 6: 'marge_simpson', 7: 'moe_szyslak', 
-                  8: 'ned_flanders', 9: 'sideshow_bob'}
+# map_characters = {0: 'abraham_grampa_simpson', 1: 'bart_simpson', 
+#                   2: 'charles_montgomery_burns', 3: 'homer_simpson', 4: 'krusty_the_clown',
+#                   5: 'lisa_simpson', 6: 'marge_simpson', 7: 'moe_szyslak', 
+#                   8: 'ned_flanders', 9: 'sideshow_bob'}
+
+map_characters = {0: 'abraham_grampa_simpson', 1: 'apu_nahasapeemapetilon', 2: 'bart_simpson', 
+    3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'homer_simpson', 
+    6: 'krusty_the_clown', 7: 'lisa_simpson', 8: 'marge_simpson', 
+    9: 'milhouse_van_houten', 10: 'moe_szyslak', 11: 'ned_flanders', 
+    12: 'principal_skinner', 13: 'sideshow_bob'}
+
 pic_size = 64
 batch_size = 32
 epochs = 200
@@ -74,7 +78,7 @@ def get_dataset(save=False, load=False, BGR=False):
     print("Test", X_test.shape, y_test.shape)
     if not load:
         dist = {k:tuple(d[k] for d in [dict(Counter(np.where(y_train==1)[1])), dict(Counter(np.where(y_test==1)[1]))]) 
-                for k in range(10)}
+                for k in range(num_classes)}
         print('\n'.join(["%s : %d train pictures & %d test pictures" % (map_characters[k], v[0], v[1]) 
             for k,v in sorted(dist.items(), key=lambda x:x[1][0], reverse=True)]))
     return X_train, X_test, y_train, y_test
