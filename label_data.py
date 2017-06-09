@@ -16,6 +16,8 @@ map_characters = {0: 'abraham_grampa_simpson', 1: 'bart_simpson',
                   2: 'charles_montgomery_burns', 3: 'homer_simpson', 4: 'krusty_the_clown',
                   5: 'lisa_simpson', 6: 'marge_simpson', 7: 'moe_szyslak', 
                   8: 'ned_flanders', 9: 'sideshow_bob'}
+pic_size = 64
+
 
 def get_character_name(name):
     chars = [k.split('/')[2] for k in glob.glob('./characters/*')]
@@ -27,7 +29,7 @@ def get_character_name(name):
         return 'ERROR'
 
 def labelized_data(interactive=False):
-    for fname in glob.glob('./*.avi'):
+    for fname in glob.glob('./*.avi')[::-1]:
         try:
             m,s = np.random.randint(0,3), np.random.randint(0,59)
             cap = cv2.VideoCapture(fname) #video_name is the video being called
@@ -117,12 +119,11 @@ def generate_pic_from_videos():
 def classify_pics(model_path):
     l = glob.glob('./autogenerate/*.jpg')
     model = keras.models.load_model(model_path)
-    shuffle(l)
     d = len(l)
     for i, p in enumerate(l): 
         img = cv2.imread(p)
-        img = cv2.resize(img, (64, 64)).astype('float32') / 255.
-        a = model.predict(img.reshape((-1, 64, 64, 3)), verbose=0)[0]
+        img = cv2.resize(img, (pic_size, pic_size)).astype('float32') / 255.
+        a = model.predict(img.reshape((-1, pic_size, pic_size, 3)), verbose=0)[0]
         if np.max(a) > 0.6:
             char = map_characters[np.argmax(a)]
             os.rename(p, './autogenerate/%s/%s' % (char, p.split('/')[2]))

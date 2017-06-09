@@ -70,10 +70,8 @@ def get_dataset(save=False, load=False, BGR=False):
             h5f.create_dataset('labels', data=y)
             h5f.close()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
-    X_train = X_train.astype('float32')
-    X_test = X_test.astype('float32')
-    X_train /= 255
-    X_test /= 255
+    X_train = X_train.astype('float32') / 255.
+    X_test = X_test.astype('float32') / 255.
     print("Train", X_train.shape, y_train.shape)
     print("Test", X_test.shape, y_test.shape)
     if not load:
@@ -85,8 +83,7 @@ def get_dataset(save=False, load=False, BGR=False):
 
 def create_model_four_conv(input_shape):
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), padding='same',
-                 input_shape=input_shape))
+    model.add(Conv2D(32, (3, 3), padding='same', input_shape=input_shape))
     model.add(Activation('relu'))
     model.add(Conv2D(32, (3, 3)))
     model.add(Activation('relu'))
@@ -111,8 +108,7 @@ def create_model_four_conv(input_shape):
 
 def create_model_six_conv(input_shape):
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), padding='same', 
-                            input_shape=input_shape))
+    model.add(Conv2D(32, (3, 3), padding='same', input_shape=input_shape))
     model.add(Activation('relu'))
     model.add(Conv2D(32, (3, 3)))
     model.add(Activation('relu'))
