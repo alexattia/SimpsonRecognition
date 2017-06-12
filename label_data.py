@@ -4,6 +4,7 @@ import numpy as np
 from selenium import webdriver
 import glob
 import urllib
+import train
 import time
 import keras
 import cv2
@@ -12,14 +13,20 @@ from random import shuffle
 import matplotlib.pyplot as plt
 
 characters = glob.glob('./characters/*')
-map_characters = {0: 'abraham_grampa_simpson', 1: 'bart_simpson', 
-                  2: 'charles_montgomery_burns', 3: 'homer_simpson', 4: 'krusty_the_clown',
-                  5: 'lisa_simpson', 6: 'marge_simpson', 7: 'moe_szyslak', 
-                  8: 'ned_flanders', 9: 'sideshow_bob'}
+map_characters = {0: 'abraham_grampa_simpson', 1: 'apu_nahasapeemapetilon', 2: 'bart_simpson', 
+        3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'edna_krabappel', 
+        6: 'homer_simpson', 7: 'kent_brockman', 8: 'krusty_the_clown', 
+        9: 'lisa_simpson', 10: 'marge_simpson', 11: 'milhouse_van_houten', 
+        12: 'moe_szyslak', 13: 'ned_flanders', 14: 'principal_skinner', 15: 'sideshow_bob'}
 pic_size = 64
 
 
 def get_character_name(name):
+    """
+    Get the character name from just a part of it, comparing to saved characters
+    :param name: part of the character name
+    :return: full name
+    """
     chars = [k.split('/')[2] for k in glob.glob('./characters/*')]
     char_name = [k for k in chars if name.lower().replace(' ', '_') in k]
     if len(char_name) > 0:
@@ -28,8 +35,18 @@ def get_character_name(name):
         print('FAKE NAME')
         return 'ERROR'
 
-def labelized_data(interactive=False):
-    for fname in glob.glob('./*.avi')[::-1]:
+def labelized_data(to_shuffle=False, interactive=False):
+    """
+    Interactive labeling data with the possibility to crop the picture shown : full picture,
+    left part, right part. Manually labeling data from .avi videos in the same folder. Analzying
+    frame (randomly chosen) of each video and then save the picture into the right character 
+    folder.
+    :param interactive: boolean to label from terminal
+    """
+    movies = glob.glob('./*.avi')
+    if to_shuffle:
+        shuffle(movies)
+    for fname in movies[::-1]:
         try:
             m,s = np.random.randint(0,3), np.random.randint(0,59)
             cap = cv2.VideoCapture(fname) #video_name is the video being called
@@ -39,7 +56,7 @@ def labelized_data(interactive=False):
             while True:
                 i+=1
                 ret, frame = cap.read() # Read the frame
-                if i % np.random.randint(150, 350) == 0:
+                if i % np.random.randint(100, 250) == 0:
                     if interactive:
                         f = plt.ion()
                     plt.imshow(frame)
@@ -93,6 +110,10 @@ def labelized_data(interactive=False):
                 continue
 
 def generate_pic_from_videos():
+    """
+    Randomly generate pictures from videos : get the full picture, the right part, the left part.
+    So, three pictures are saved for each analyzed frame (chosen randomly).
+    """
     for k, fname in enumerate(glob.glob('./*.avi')):
         m,s = np.random.randint(0,3), np.random.randint(0,59)
         cap = cv2.VideoCapture(fname) 
@@ -117,8 +138,12 @@ def generate_pic_from_videos():
         print('\r%d/%d' % (k+1, len(glob.glob('./*.avi'))), end='')
 
 def classify_pics(model_path):
+    """
+    Use a Keras saved model to classify pictures and move them into the right character folder.
+    :param model_path: path of saved model
+    """
     l = glob.glob('./autogenerate/*.jpg')
-    model = keras.models.load_model(model_path)
+    model = train.load_model_from_checkpoint('./models/weights.best.hdf5')
     d = len(l)
     for i, p in enumerate(l): 
         img = cv2.imread(p)

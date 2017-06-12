@@ -15,16 +15,11 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.optimizers import SGD, Adam
 
-# map_characters = {0: 'abraham_grampa_simpson', 1: 'bart_simpson', 
-#                   2: 'charles_montgomery_burns', 3: 'homer_simpson', 4: 'krusty_the_clown',
-#                   5: 'lisa_simpson', 6: 'marge_simpson', 7: 'moe_szyslak', 
-#                   8: 'ned_flanders', 9: 'sideshow_bob'}
-
 map_characters = {0: 'abraham_grampa_simpson', 1: 'apu_nahasapeemapetilon', 2: 'bart_simpson', 
-    3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'homer_simpson', 
-    6: 'krusty_the_clown', 7: 'lisa_simpson', 8: 'marge_simpson', 
-    9: 'milhouse_van_houten', 10: 'moe_szyslak', 11: 'ned_flanders', 
-    12: 'principal_skinner', 13: 'sideshow_bob'}
+        3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'edna_krabappel', 
+        6: 'homer_simpson', 7: 'kent_brockman', 8: 'krusty_the_clown', 
+        9: 'lisa_simpson', 10: 'marge_simpson', 11: 'milhouse_van_houten', 
+        12: 'moe_szyslak', 13: 'ned_flanders', 14: 'principal_skinner', 15: 'sideshow_bob'}
 
 pic_size = 64
 batch_size = 32
@@ -34,6 +29,12 @@ pictures_per_class = 1000
 test_size = 0.15
 
 def load_pictures(BGR):
+    """
+    Load pictures from folders for characters from the map_characters dict and create a numpy dataset and 
+    a numpy labels set. Pictures are re-sized into picture_size square.
+    :param BGR: boolean to use true color for the picture (RGB instead of BGR for plt)
+    :return: dataset, labels set
+    """
     pics = []
     labels = []
     for k, char in map_characters.items():
@@ -50,28 +51,41 @@ def load_pictures(BGR):
     return np.array(pics), np.array(labels) 
 
 def get_dataset(save=False, load=False, BGR=False):
+    """
+    Create the actual dataset split into train and test, pictures content is as float32 and
+    normalized (/255.). The dataset could be saved or loaded from h5 files.
+    :param save: saving or not the created dataset
+    :param load: loading or not the dataset
+    :param BGR: boolean to use true color for the picture (RGB instead of BGR for plt)
+    :return: X_train, X_test, y_train, y_test (numpy arrays)
+    """
     if load:
         h5f = h5py.File('dataset.h5','r')
-        X = h5f['dataset'][:]
+        X_train = h5f['X_train'][:]
+        X_test = h5f['X_test'][:]
         h5f.close()    
 
         h5f = h5py.File('labels.h5','r')
-        y = h5f['labels'][:]
+        y_train = h5f['y_train'][:]
+        y_test = h5f['y_test'][:]
         h5f.close()    
     else:
         X, y = load_pictures(BGR)
         y = keras.utils.to_categorical(y, num_classes)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+        X_train = X_train.astype('float32') / 255.
+        X_test = X_test.astype('float32') / 255.
         if save:
             h5f = h5py.File('dataset.h5', 'w')
-            h5f.create_dataset('dataset', data=X)
+            h5f.create_dataset('X_train', data=X_train)
+            h5f.create_dataset('X_test', data=X_test)
             h5f.close()
 
             h5f = h5py.File('labels.h5', 'w')
-            h5f.create_dataset('labels', data=y)
+            h5f.create_dataset('y_train', data=y_train)
+            h5f.create_dataset('y_test', data=y_test)
             h5f.close()
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
-    X_train = X_train.astype('float32') / 255.
-    X_test = X_test.astype('float32') / 255.
+
     print("Train", X_train.shape, y_train.shape)
     print("Test", X_test.shape, y_test.shape)
     if not load:
@@ -82,6 +96,11 @@ def get_dataset(save=False, load=False, BGR=False):
     return X_train, X_test, y_train, y_test
 
 def create_model_four_conv(input_shape):
+    """
+    CNN Keras model with 4 convolutions.
+    :param input_shape: input shape, generally X_train.shape[1:]
+    :return: Keras model, RMS prop optimizer
+    """
     model = Sequential()
     model.add(Conv2D(32, (3, 3), padding='same', input_shape=input_shape))
     model.add(Activation('relu'))
@@ -107,6 +126,11 @@ def create_model_four_conv(input_shape):
     return model, opt
 
 def create_model_six_conv(input_shape):
+    """
+    CNN Keras model with 6 convolutions.
+    :param input_shape: input shape, generally X_train.shape[1:]
+    :return: Keras model, RMS prop optimizer
+    """
     model = Sequential()
     model.add(Conv2D(32, (3, 3), padding='same', input_shape=input_shape))
     model.add(Activation('relu'))
@@ -137,11 +161,28 @@ def create_model_six_conv(input_shape):
     opt = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     return model, opt
 
+def load_model_from_checkpoint(weights_path, input_shape=(pic_size,pic_size,3)):
+    model, opt = create_model_four_conv(input_shape)
+    model.load_weights(weights_path)
+    model.compile(loss='categorical_crossentropy',
+              optimizer=opt,
+              metrics=['accuracy'])
+    return model
+
+
 def lr_schedule(epoch):
     lr = 0.01
     return lr*(0.1**int(epoch/10))
 
 def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, callback=False, six_conv=False):
+    """
+    Training.
+    :param model: Keras sequential model
+    :param data_augmentation: boolean for data_augmentation (default:True)
+    :param callback: boolean for saving model checkpoints and get the best saved model
+    :param six_conv: boolean for using the 6 convs model (default:False, so 4 convs)
+    :return: model and epochs history (acc, loss, val_acc, val_loss for every epoch)
+    """
     if data_augmentation:
         datagen = ImageDataGenerator(
             featurewise_center=False,  # set input mean to 0 over the dataset
