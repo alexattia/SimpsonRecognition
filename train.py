@@ -16,10 +16,10 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.optimizers import SGD, Adam
 
 map_characters = {0: 'abraham_grampa_simpson', 1: 'apu_nahasapeemapetilon', 2: 'bart_simpson', 
-        3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'edna_krabappel', 
-        6: 'homer_simpson', 7: 'kent_brockman', 8: 'krusty_the_clown', 
-        9: 'lisa_simpson', 10: 'marge_simpson', 11: 'milhouse_van_houten', 
-        12: 'moe_szyslak', 13: 'ned_flanders', 14: 'principal_skinner', 15: 'sideshow_bob'}
+        3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'comic_book_guy', 6: 'edna_krabappel', 
+        7: 'homer_simpson', 8: 'kent_brockman', 9: 'krusty_the_clown', 10: 'lisa_simpson', 
+        11: 'marge_simpson', 12: 'milhouse_van_houten', 13: 'moe_szyslak', 
+        14: 'ned_flanders', 15: 'nelson_muntz', 16: 'principal_skinner', 17: 'sideshow_bob'}
 
 pic_size = 64
 batch_size = 32
@@ -41,6 +41,7 @@ def load_pictures(BGR):
         pictures = [k for k in glob.glob('./characters/%s/*' % char) if 'edited' in k 
                                                                      or 'pic_vid' in k]
         nb_pic = round(pictures_per_class/(1-test_size)) if round(pictures_per_class/(1-test_size))<len(pictures) else len(pictures)
+        # nb_pic = len(pictures)
         for pic in np.random.choice(pictures, nb_pic):
             a = cv2.imread(pic)
             if BGR:
@@ -73,8 +74,6 @@ def get_dataset(save=False, load=False, BGR=False):
         X, y = load_pictures(BGR)
         y = keras.utils.to_categorical(y, num_classes)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
-        X_train = X_train.astype('float32') / 255.
-        X_test = X_test.astype('float32') / 255.
         if save:
             h5f = h5py.File('dataset.h5', 'w')
             h5f.create_dataset('X_train', data=X_train)
@@ -85,7 +84,9 @@ def get_dataset(save=False, load=False, BGR=False):
             h5f.create_dataset('y_train', data=y_train)
             h5f.create_dataset('y_test', data=y_test)
             h5f.close()
-
+            
+    X_train = X_train.astype('float32') / 255.
+    X_test = X_test.astype('float32') / 255.
     print("Train", X_train.shape, y_train.shape)
     print("Test", X_test.shape, y_test.shape)
     if not load:
@@ -193,8 +194,8 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, ca
             rotation_range=10,  # randomly rotate images in the range (degrees, 0 to 180)
             width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
             height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
-            horizontal_flip=True,  # randomly flip images
-            vertical_flip=False)  # randomly flip images
+            horizontal_flip=False,  # randomly flip images
+            vertical_flip=True)  # randomly flip images
         # Compute quantities required for feature-wise normalization
         # (std, mean, and principal components if ZCA whitening is applied).
         datagen.fit(X_train)

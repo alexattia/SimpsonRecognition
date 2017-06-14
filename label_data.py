@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 
 characters = glob.glob('./characters/*')
 map_characters = {0: 'abraham_grampa_simpson', 1: 'apu_nahasapeemapetilon', 2: 'bart_simpson', 
-        3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'edna_krabappel', 
-        6: 'homer_simpson', 7: 'kent_brockman', 8: 'krusty_the_clown', 
-        9: 'lisa_simpson', 10: 'marge_simpson', 11: 'milhouse_van_houten', 
-        12: 'moe_szyslak', 13: 'ned_flanders', 14: 'principal_skinner', 15: 'sideshow_bob'}
+        3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'comic_book_guy', 6: 'edna_krabappel', 
+        7: 'homer_simpson', 8: 'kent_brockman', 9: 'krusty_the_clown', 10: 'lisa_simpson', 
+        11: 'marge_simpson', 12: 'milhouse_van_houten', 13: 'moe_szyslak', 
+        14: 'ned_flanders', 15: 'nelson_muntz', 16: 'principal_skinner', 17: 'sideshow_bob'}
 pic_size = 64
 
 
@@ -56,6 +56,9 @@ def labelized_data(to_shuffle=False, interactive=False):
             while True:
                 i+=1
                 ret, frame = cap.read() # Read the frame
+                # Resizing HD pictures (we don't need HD)
+                if np.min(frame.shape[:2]) > 900:
+                    frame = cv2.resize(frame, (int(frame.shape[1]/2), int(frame.shape[0]/2)))
                 if i % np.random.randint(100, 250) == 0:
                     if interactive:
                         f = plt.ion()
