@@ -140,10 +140,9 @@ def generate_pic_from_videos():
                 pass
         print('\r%d/%d' % (k+1, len(glob.glob('./*.avi'))), end='')
 
-def classify_pics(model_path):
+def classify_pics():
     """
     Use a Keras saved model to classify pictures and move them into the right character folder.
-    :param model_path: path of saved model
     """
     l = glob.glob('./autogenerate/*.jpg')
     model = train.load_model_from_checkpoint('./models/weights.best.hdf5')

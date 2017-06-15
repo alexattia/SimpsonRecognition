@@ -194,8 +194,8 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, ca
             rotation_range=10,  # randomly rotate images in the range (degrees, 0 to 180)
             width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
             height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
-            horizontal_flip=False,  # randomly flip images
-            vertical_flip=True)  # randomly flip images
+            horizontal_flip=True,  # randomly flip images
+            vertical_flip=False)  # randomly flip images
         # Compute quantities required for feature-wise normalization
         # (std, mean, and principal components if ZCA whitening is applied).
         datagen.fit(X_train)
