@@ -147,23 +147,26 @@ def create_model_six_conv(input_shape):
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.2))
 
-    model.add(Conv2D(128, (3, 3), padding='same')) 
+    model.add(Conv2D(256, (3, 3), padding='same')) 
     model.add(Activation('relu'))
-    model.add(Conv2D(128, (3, 3)))
+    model.add(Conv2D(256, (3, 3)))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.2))
 
     model.add(Flatten())
-    model.add(Dense(512))
+    model.add(Dense(2048))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
     model.add(Dense(num_classes, activation='softmax'))
     opt = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     return model, opt
 
-def load_model_from_checkpoint(weights_path, input_shape=(pic_size,pic_size,3)):
-    model, opt = create_model_four_conv(input_shape)
+def load_model_from_checkpoint(weights_path, six_conv=False, input_shape=(pic_size,pic_size,3)):
+    if six_conv:
+        model, opt = create_model_six_conv(input_shape)
+    else:
+        model, opt = create_model_four_conv(input_shape)
     model.load_weights(weights_path)
     model.compile(loss='categorical_crossentropy',
               optimizer=opt,
@@ -200,13 +203,15 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, ca
         # (std, mean, and principal components if ZCA whitening is applied).
         datagen.fit(X_train)
         if six_conv:
-            history = model.fit_generator(datagen.flow(X_train, y_train,
-                                         batch_size=batch_size),
-                            steps_per_epoch=X_train.shape[0] // batch_size,
-                            epochs=40,
-                            validation_data=(X_test, y_test),
-                            callbacks=[LearningRateScheduler(lr_schedule),
-                                        ModelCheckpoint('model_6conv.h5',save_best_only=True)])
+                filepath="weights.best_6conv.hdf5"
+                checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
+                callbacks_list = [LearningRateScheduler(lr_schedule) ,checkpoint]
+                history = model.fit_generator(datagen.flow(X_train, y_train,
+                                            batch_size=batch_size),
+                                            steps_per_epoch=X_train.shape[0] // batch_size,
+                                            epochs=40,
+                                            validation_data=(X_test, y_test),
+                                            callbacks=callbacks_list)
         else:
             if callback:
                 filepath="weights.best.hdf5"
@@ -231,3 +236,12 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, ca
           validation_data=(X_test, y_test),
           shuffle=True)
     return model, history
+
+if __name__ == '__main__':
+    X_train, X_test, y_train, y_test = train.get_dataset(load=True)
+    model, opt = train.create_model_four_conv(X_train.shape[1:])
+    model.compile(loss='categorical_crossentropy',
+              optimizer=opt,
+              metrics=['accuracy'])
+    model, history = train.training(model, X_train, X_test, y_train, y_test, data_augmentation=True, callback=True)
+
