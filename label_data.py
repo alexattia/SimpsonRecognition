@@ -145,7 +145,7 @@ def classify_pics():
     Use a Keras saved model to classify pictures and move them into the right character folder.
     """
     l = glob.glob('./autogenerate/*.jpg')
-    model = train.load_model_from_checkpoint('./models/weights.best.hdf5')
+    model = train.load_model_from_checkpoint('./models/weights.best_6conv2.hdf5', six_conv=True)
     d = len(l)
     for i, p in enumerate(l): 
         img = cv2.imread(p)

@@ -3,10 +3,13 @@ import cv2
 import matplotlib.pyplot as plt
 import pickle
 import h5py
-from sklearn.model_selection import train_test_split
 import glob
+import time
 from random import shuffle
 from collections import Counter
+
+from sklearn.model_selection import train_test_split
+
 import keras
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
@@ -155,7 +158,7 @@ def create_model_six_conv(input_shape):
     model.add(Dropout(0.2))
 
     model.add(Flatten())
-    model.add(Dense(2048))
+    model.add(Dense(1024))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
     model.add(Dense(num_classes, activation='softmax'))
@@ -178,7 +181,7 @@ def lr_schedule(epoch):
     lr = 0.01
     return lr*(0.1**int(epoch/10))
 
-def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, callback=False, six_conv=False):
+def training(model, X_train, X_test, y_train, y_test, data_augmentation=True):
     """
     Training.
     :param model: Keras sequential model
@@ -202,33 +205,15 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, ca
         # Compute quantities required for feature-wise normalization
         # (std, mean, and principal components if ZCA whitening is applied).
         datagen.fit(X_train)
-        if six_conv:
-                filepath="weights.best_6conv.hdf5"
-                checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
-                callbacks_list = [LearningRateScheduler(lr_schedule) ,checkpoint]
-                history = model.fit_generator(datagen.flow(X_train, y_train,
-                                            batch_size=batch_size),
-                                            steps_per_epoch=X_train.shape[0] // batch_size,
-                                            epochs=40,
-                                            validation_data=(X_test, y_test),
-                                            callbacks=callbacks_list)
-        else:
-            if callback:
-                filepath="weights.best.hdf5"
-                checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
-                callbacks_list = [checkpoint]
-                history = model.fit_generator(datagen.flow(X_train, y_train,
-                                             batch_size=batch_size),
-                                            steps_per_epoch=X_train.shape[0] // batch_size,
-                                            epochs=epochs,
-                                            callbacks=callbacks_list,
-                                            validation_data=(X_test, y_test))
-            else: 
-                history = model.fit_generator(datagen.flow(X_train, y_train,
-                             batch_size=batch_size),
-                            steps_per_epoch=X_train.shape[0] // batch_size,
-                            epochs=epochs,
-                            validation_data=(X_test, y_test))
+        filepath="weights_6conv_%s.hdf5" % time.strftime("%d%m/%Y")
+        checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
+        callbacks_list = [LearningRateScheduler(lr_schedule) ,checkpoint]
+        history = model.fit_generator(datagen.flow(X_train, y_train,
+                                    batch_size=batch_size),
+                                    steps_per_epoch=X_train.shape[0] // batch_size,
+                                    epochs=40,
+                                    validation_data=(X_test, y_test),
+                                    callbacks=callbacks_list)        
     else:
         history = model.fit(X_train, y_train,
           batch_size=batch_size,
@@ -239,9 +224,9 @@ def training(model, X_train, X_test, y_train, y_test, data_augmentation=True, ca
 
 if __name__ == '__main__':
     X_train, X_test, y_train, y_test = train.get_dataset(load=True)
-    model, opt = train.create_model_four_conv(X_train.shape[1:])
+    model, opt = train.create_model_six_conv(X_train.shape[1:])
     model.compile(loss='categorical_crossentropy',
               optimizer=opt,
               metrics=['accuracy'])
-    model, history = train.training(model, X_train, X_test, y_train, y_test, data_augmentation=True, callback=True)
+    model, history = train.training(model, X_train, X_test, y_train, y_test, data_augmentation=True)
 
