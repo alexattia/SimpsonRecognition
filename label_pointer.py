@@ -14,14 +14,14 @@ from train import map_characters
 
 # List of already bounded pictures
 with open('./annotation.txt') as f:
-    already_labeled = [k.strip().split(' ')[0] for k in f.readlines()]
+    already_labeled = [k.strip().split(',')[0] for k in f.readlines()]
 
 # List of characters
 characters = list(map_characters.values())
 shuffle(characters)
 
 for char in characters:
-    print('Working on %s' % char)
+    print('Working on %s' % char.replace('_', ' ').title())
     # all labeled (just name, no bounding box) pictures of the character
     pics = [k for k in glob.glob('./characters/%s/*.*' % char) if 'edited' in k or 'pic_vid' in k]
     shuffle(pics)
@@ -29,6 +29,7 @@ for char in characters:
         if p not in already_labeled:
             try:
                 im = cv2.imread(p)
+                im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
                 ax = plt.gca()
                 fig = plt.gcf()
                 implot = ax.imshow(im)
@@ -48,9 +49,10 @@ for char in characters:
                                 if r.lower() in ['yes','y']:
                                     os.remove(p)
                                     return
-                            line = '{0} {1} {2}'.format(p, 
-                                ' '.join([str(int(k)) for k in position[0]]), 
-                                ' '.join([str(int(k)) for k in position[1]])) 
+                            line = '{0},{1},{2},{3}'.format("/Users/alexandreattia/Desktop/Work/Practice/SimpsonProject/" + p[2:], 
+                                ','.join([str(int(k)) for k in position[0]]), 
+                                ','.join([str(int(k)) for k in position[1]]),
+                                char) 
 
                             # Open the annotations file to continue to write
                             target = open('annotation.txt', 'a')
@@ -69,11 +71,14 @@ for char in characters:
                 plt.close()
                 print('\nNumber of pictures with bounding box :')
                 with open('./annotation.txt') as f:
-                    already_labeled = [k.strip().split(' ')[0].split('/')[2] for k in f.readlines()]
+                    already_labeled = [k.strip().split(',')[0].split('/')[8] for k in f.readlines()]
                 nb_pic_tot = {p:len([k for k in glob.glob('./characters/%s/*.*' % p) if 'edited' in k or 'pic_vid' in k]) for p in characters} 
                 print('\n'.join(['%s : %d/%d' % (char, nb, nb_pic_tot[char]) for char, nb in sorted(Counter(already_labeled).items(), 
                                                                      key =lambda x:x[1], reverse=True)])) 
-                sys.exit("End")       
+                t = np.sum(list(nb_pic_tot.values()))
+                sys.exit("Total {}/{} ({}%)" .format(len(already_labeled), 
+                                                     t,
+                                                     round(100*len(already_labeled)/t)))      
 
     plt.close()
 
