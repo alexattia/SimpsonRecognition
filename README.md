@@ -17,6 +17,10 @@ You can find the dataset on [Kaggle](https://www.kaggle.com/alexattia/the-simpso
 
 The second part is training the model. My goal is to have 20 classes. I aim to have 1000 pictures per class, unfortunately some characters are not often on screen so I have fewer pictures for those characters.
 As you can see on the Jupyter notebook, I benchmark two models : 4 and 6 convolutional layers neural networks. Because of the small number of pictures (approx. 1k pictures per class), I use data augmentation.  
-Currently, I have 95% of accuracy for 18 classes.  
+Currently, I have 96% of accuracy (F1-Score) for 18 classes.  
 
 ![Lisa picture](https://github.com/alexattia/SimpsonRecognition/blob/master/pics/mapple_lisa.png)
+
+### Third part : Faster R-CNN
+
+The third part is upgrade the model to detect and recognize characters. I have to annotate data to get bounding boxes for characters for each picture in order to train a new model : [Faster R-CNN](https://arxiv.org/abs/1506.01497)(which is based on a Region Proposal Network).  

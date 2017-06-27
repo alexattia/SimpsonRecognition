@@ -21,10 +21,12 @@ characters = list(map_characters.values())
 shuffle(characters)
 
 for char in characters:
+    char = 'bart_simpson'
     print('Working on %s' % char.replace('_', ' ').title())
     # all labeled (just name, no bounding box) pictures of the character
     pics = [k for k in glob.glob('./characters/%s/*.*' % char) if 'edited' in k or 'pic_vid' in k]
     shuffle(pics)
+    i = 0
     for p in pics:
         if p not in already_labeled:
             try:
@@ -32,12 +34,13 @@ for char in characters:
                 im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
                 ax = plt.gca()
                 fig = plt.gcf()
+
                 implot = ax.imshow(im)
                 position = []
                 def onclick(event):
                     """
                     If click, add the mouse position to the list.
-                    Closing the plotted picture after 2 clicks (= 2 cornes.)
+                    Closing the plotted picture after 2 clicks (= 2 corners.)
                     Write the position for each picture into the text file.
                     """
                     if event.xdata != None and event.ydata != None:
@@ -48,6 +51,7 @@ for char in characters:
                                 r = input('Delete this picture[Y/n] ? ')
                                 if r.lower() in ['yes','y']:
                                     os.remove(p)
+                                    plt.close()
                                     return
                             line = '{0},{1},{2},{3}'.format("/Users/alexandreattia/Desktop/Work/Practice/SimpsonProject/" + p[2:], 
                                 ','.join([str(int(k)) for k in position[0]]), 
@@ -59,9 +63,11 @@ for char in characters:
                             # Write picture and coordinates
                             target.write(line)
                             target.write("\n")
-                            plt.close()   
+                            plt.close()
+                fig.canvas.set_window_title('%s pictures labeled' % i)   
                 cid = fig.canvas.mpl_connect('button_press_event', onclick)
                 plt.show()
+                i += 1
             # Common errors, just pass and close the plotting window
             except UnicodeDecodeError:
                 plt.close()
