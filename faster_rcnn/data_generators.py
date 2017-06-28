@@ -126,7 +126,6 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height):
 		gta[bbox_num, 3] = bbox['y2'] * (resized_height / float(height))
 	
 	# rpn ground truth
-
 	for anchor_size_idx in range(len(anchor_sizes)):
 		for anchor_ratio_idx in range(n_anchratios):
 			anchor_x = anchor_sizes[anchor_size_idx] * anchor_ratios[anchor_ratio_idx][0]
@@ -212,7 +211,6 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height):
 						y_rpn_regr[jy, ix, start:start+4] = best_regr
 
 	# we ensure that every bbox has at least one positive RPN region
-
 	for idx in range(num_anchors_for_bbox.shape[0]):
 		if num_anchors_for_bbox[idx] == 0:
 			# no box with an IOU greater than zero ...
@@ -325,7 +323,6 @@ def get_anchor_gt(all_img_data, class_count, C, backend, mode='train'):
 					continue
 
 				# Zero-center by mean pixel, and preprocess image
-
 				x_img = x_img[:,:, (2, 1, 0)]  # BGR -> RGB
 				x_img = x_img.astype(np.float32)
 				x_img[:, :, 0] -= C.img_channel_mean[0]
