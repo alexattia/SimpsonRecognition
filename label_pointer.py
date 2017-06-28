@@ -21,10 +21,9 @@ characters = list(map_characters.values())
 shuffle(characters)
 
 for char in characters:
-    char = 'bart_simpson'
     print('Working on %s' % char.replace('_', ' ').title())
     # all labeled (just name, no bounding box) pictures of the character
-    pics = [k for k in glob.glob('./characters/%s/*.*' % char) if 'edited' in k or 'pic_vid' in k]
+    pics = glob.glob('./characters/%s/*.*' % char)
     shuffle(pics)
     i = 0
     for p in pics:
@@ -53,7 +52,7 @@ for char in characters:
                                     os.remove(p)
                                     plt.close()
                                     return
-                            line = '{0},{1},{2},{3}'.format("/Users/alexandreattia/Desktop/Work/Practice/SimpsonProject/" + p[2:], 
+                            line = '{0},{1},{2},{3}'.format(p, 
                                 ','.join([str(int(k)) for k in position[0]]), 
                                 ','.join([str(int(k)) for k in position[1]]),
                                 char) 
@@ -77,10 +76,11 @@ for char in characters:
                 plt.close()
                 print('\nNumber of pictures with bounding box :')
                 with open('./annotation.txt') as f:
-                    already_labeled = [k.strip().split(',')[0].split('/')[8] for k in f.readlines()]
-                nb_pic_tot = {p:len([k for k in glob.glob('./characters/%s/*.*' % p) if 'edited' in k or 'pic_vid' in k]) for p in characters} 
+                    already_labeled = [k.strip().split(',')[5] for k in f.readlines()]
+                nb_pic_tot = {p:len([k for k in glob.glob('./characters/%s/*.*' % p)]) for p in characters} 
+
                 print('\n'.join(['%s : %d/%d' % (char, nb, nb_pic_tot[char]) for char, nb in sorted(Counter(already_labeled).items(), 
-                                                                     key =lambda x:x[1], reverse=True)])) 
+                                                     key =lambda x:x[1], reverse=True)]))  
                 t = np.sum(list(nb_pic_tot.values()))
                 sys.exit("Total {}/{} ({}%)" .format(len(already_labeled), 
                                                      t,

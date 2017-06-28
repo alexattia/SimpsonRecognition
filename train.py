@@ -41,8 +41,7 @@ def load_pictures(BGR):
     pics = []
     labels = []
     for k, char in map_characters.items():
-        pictures = [k for k in glob.glob('./characters/%s/*' % char) if 'edited' in k 
-                                                                     or 'pic_vid' in k]
+        pictures = [k for k in glob.glob('./characters/%s/*' % char)]
         nb_pic = round(pictures_per_class/(1-test_size)) if round(pictures_per_class/(1-test_size))<len(pictures) else len(pictures)
         # nb_pic = len(pictures)
         for pic in np.random.choice(pictures, nb_pic):
