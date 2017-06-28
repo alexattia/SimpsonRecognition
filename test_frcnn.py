@@ -6,7 +6,7 @@ import sys
 import pickle
 from optparse import OptionParser
 import time
-from faster_rcnn import config
+from faster_rcnn import config, data_generators
 import faster_rcnn.resnet as nn
 from keras import backend as K
 from keras.layers import Input
@@ -16,23 +16,12 @@ from faster_rcnn import roi_helpers
 sys.setrecursionlimit(40000)
 
 parser = OptionParser()
-
 parser.add_option("-p", "--path", dest="test_path", help="Path to test data.")
-parser.add_option("-n", "--num_rois", dest="num_rois",
-				help="Number of ROIs per iteration. Higher means more memory use.", default=32)
-parser.add_option("--config_filename", dest="config_filename", help=
-				"Location to read the metadata related to the training (generated when training).",
-				default="config.pickle")
-
 (options, args) = parser.parse_args()
-
 if not options.test_path:   # if filename is not given
 	parser.error('Error: path to test data must be specified. Pass --path to command line')
 
-
-config_output_filename = options.config_filename
-
-with open(config_output_filename, 'rb') as f_in:
+with open('./config.pickle', 'rb') as f_in:
 	C = pickle.load(f_in)
 
 # turn off any data augmentation at test time
@@ -45,26 +34,10 @@ img_path = options.test_path
 def format_img(img, C):
 	img_min_side = float(C.im_size)
 	(height,width,_) = img.shape
-	
-	if width <= height:
-		ratio = img_min_side/width
-		new_height = int(ratio * height)
-		new_width = int(img_min_side)
-	else:
-		ratio = img_min_side/height
-		new_width = int(ratio * width)
-		new_height = int(img_min_side)
-	img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
-	img = img[:, :, (2, 1, 0)]
-	img = img.astype(np.float32)
-	img[:, :, 0] -= C.img_channel_mean[0]
-	img[:, :, 1] -= C.img_channel_mean[1]
-	img[:, :, 2] -= C.img_channel_mean[2]
-	img /= C.img_scaling_factor
-	img = np.transpose(img, (2, 0, 1))
-	img = np.expand_dims(img, axis=0)
+	(resized_width, resized_height, ratio) = data_generators.get_new_img_size(width, height, C.im_size)
+	img = cv2.resize(img, (resized_width, resized_height), interpolation=cv2.INTER_CUBIC)
+	img = data_generators.normalize_img(img, C)
 	return img, ratio
-
 
 # Method to transform the coordinates of the bounding box to its original size
 def get_real_coordinates(ratio, x1, y1, x2, y2):
@@ -82,29 +55,20 @@ if 'bg' not in class_mapping:
 	class_mapping['bg'] = len(class_mapping)
 
 class_mapping = {v: k for k, v in class_mapping.items()}
-print(class_mapping)
 class_to_color = {class_mapping[v]: np.random.randint(0, 255, 3) for v in class_mapping}
-C.num_rois = int(options.num_rois)
 
-if K.image_dim_ordering() == 'th':
-	input_shape_img = (3, None, None)
-	input_shape_features = (1024, None, None)
-else:
-	input_shape_img = (None, None, 3)
-	input_shape_features = (None, None, 1024)
-
-
-img_input = Input(shape=input_shape_img)
+img_input = Input(shape=(None, None, 3))
 roi_input = Input(shape=(C.num_rois, 4))
-feature_map_input = Input(shape=input_shape_features)
+feature_map_input = Input(shape=(None, None, 1024))
 
-# define the base network (resnet here, can be VGG, Inception, etc)
+# define the base network (resnet here)
 shared_layers = nn.nn_base(img_input, trainable=True)
 
 # define the RPN, built on the base layers
 num_anchors = len(C.anchor_box_scales) * len(C.anchor_box_ratios)
 rpn_layers = nn.rpn(shared_layers, num_anchors)
 
+# define the classifer, built on the feature map
 classifier = nn.classifier(feature_map_input, roi_input, C.num_rois, nb_classes=len(class_mapping), trainable=True)
 
 model_rpn = Model(img_input, rpn_layers)
@@ -119,12 +83,9 @@ model_rpn.compile(optimizer='sgd', loss='mse')
 model_classifier.compile(optimizer='sgd', loss='mse')
 
 all_imgs = []
-
 classes = {}
-
 bbox_threshold = 0.8
 
-visualise = True
 
 for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 	if not img_name.lower().endswith(('.bmp', '.jpeg', '.jpg', '.png', '.tif', '.tiff')):
@@ -221,17 +182,19 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 			(retval,baseLine) = cv2.getTextSize(textLabel,cv2.FONT_HERSHEY_COMPLEX,1,1)
 
 			# To avoid putting text outside the frame
-			if real_y1 > 20 and real_x1 > 20:
-				textOrg = (real_x1, real_y1+5)
-			else:
+			# replace the legende if the box is outside the image
+			if real_y1 < 20 and real_y2 < img.shape[0]:
 				textOrg = (real_x1, real_y2+5)
 				
+			elif real_y1 < 20 and real_y2 > img.shape[0]:
+				textOrg = (real_x1, img.shape[0]-10)
+			else:
+				textOrg = (real_x1, real_y1+5)
+
 			cv2.rectangle(img, (textOrg[0] - 5, textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 0, 0), 2)
 			cv2.rectangle(img, (textOrg[0] - 5,textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (255, 255, 255), -1)
 			cv2.putText(img, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
 
 	print('Elapsed time = {}'.format(time.time() - st))
 	print(all_dets)
-	# cv2.imshow('img', img)
-	# cv2.waitKey(0)
 	cv2.imwrite('./results_test/test_{}.png'.format(idx),img)

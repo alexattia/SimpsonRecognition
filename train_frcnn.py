@@ -179,8 +179,9 @@ try:
 
             except Exception as e:
                 print('Exception: {}'.format(e))
+                raise
                 continue
 except KeyboardInterrupt:
     t1 = time.time()
-    print('It took {:.2f}s'.format(t0-t1))
+    print('\nIt took {:.2f}s'.format(t1-t0))
     sys.exit('Keyboard Interrupt')
