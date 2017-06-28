@@ -22,7 +22,7 @@ Currently, I have 96% of accuracy (F1-Score) for 18 classes.
 ### Third part : Faster R-CNN
 
 The third part is upgrade the model to detect and recognize characters. I have to annotate data to get bounding boxes for characters for each picture in order to train a new model : [Faster R-CNN](https://arxiv.org/abs/1506.01497) (which is based on a Region Proposal Network). As usual, the annotation text file with the bounding boxes coordinates will be released soon.  
-The implementation on this network on Keras is from [here](https://github.com/yhenon/keras-frcnn). I slightly edited the code : remove parts which are useless for my purpose).
+The implementation on this network on Keras is from [here](https://github.com/yhenon/keras-frcnn) by Yann Henon. I slightly edited the code : remove parts which are useless for my purpose).
 
 ### Files description
 
