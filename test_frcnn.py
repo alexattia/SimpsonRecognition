@@ -87,8 +87,8 @@ model_classifier.compile(optimizer='sgd', loss='mse')
 
 all_imgs = []
 classes = {}
-bbox_threshold = 0.8
-
+bbox_threshold = 0.5
+overlap_thresh = 0.2
 
 for idx, img_name in enumerate(sorted(os.listdir(img_path))):
     if not img_name.lower().endswith(('.bmp', '.jpeg', '.jpg', '.png', '.tif', '.tiff')):
@@ -171,8 +171,9 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
     for key in bboxes:
         bbox = np.array(bboxes[key])
 
-        new_boxes, new_probs = roi_helpers.non_max_suppression_fast(bbox, np.array(probs[key]), overlap_thresh=0.2)
-        for jk in range(new_boxes.shape[0]):
+        new_boxes, new_probs = roi_helpers.non_max_suppression_fast(bbox, np.array(probs[key]), overlap_thresh=overlap_thresh)
+        jk = np.argmax(new_probs)
+        if new_probs[jk] > 0.55:
             (x1, y1, x2, y2) = new_boxes[jk,:]
 
             (real_x1, real_y1, real_x2, real_y2) = get_real_coordinates(ratio, x1, y1, x2, y2)
@@ -200,4 +201,4 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 
     print('Elapsed time = {}'.format(time.time() - st))
     print(all_dets)
-    cv2.imwrite('./results_test/test_{}.png'.format(idx),img)
+    cv2.imwrite('./results_test/test_{}C.png'.format(idx),img)
