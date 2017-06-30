@@ -185,7 +185,6 @@ try:
 
             except Exception as e:
                 print('Exception: {}'.format(e))
-                raise
                 continue
 except KeyboardInterrupt:
     t1 = time.time()

@@ -12,7 +12,6 @@ import ffmpy
 from random import shuffle
 import matplotlib.pyplot as plt
 
-characters = glob.glob('./characters/*')
 map_characters = {0: 'abraham_grampa_simpson', 1: 'apu_nahasapeemapetilon', 2: 'bart_simpson', 
         3: 'charles_montgomery_burns', 4: 'chief_wiggum', 5: 'comic_book_guy', 6: 'edna_krabappel', 
         7: 'homer_simpson', 8: 'kent_brockman', 9: 'krusty_the_clown', 10: 'lisa_simpson', 
@@ -68,6 +67,7 @@ def labelized_data(to_shuffle=False, interactive=False):
                     if where.lower() == 'stop':
                         # os.remove(fname)
                         raise
+                    
                     elif where.lower() in ['left', 'l']:
                         plt.close()
                         plt.imshow(frame[:,:int(frame.shape[1]/2)])
@@ -76,11 +76,12 @@ def labelized_data(to_shuffle=False, interactive=False):
                         plt.close()
                         if name.lower() not in ['no','n','']:
                             name_char = get_character_name(name)
-                            title = './characters/%s/pic_%s_%d.jpg' % (name_char, fname.split('/')[1].split('.')[0], np.random.randint(10000))
+                            name_new_pic = 'pic_{:04d}.jpg'.format(len(glob.glob('./characters/%s/*' % name_char)))
+                            title = './characters/%s/%s' % (name_char, name_new_pic)
                             cv2.imwrite(title, frame[:,:int(frame.shape[1]/2)])
                             print('Saved at %s' % title)
-                            print('%s : %d photos labeled' % (name_char, len([k for k in glob.glob('./characters/%s/*' % name_char) 
-                                                                            if 'pic_video' in k or 'edited' in k ])))
+                            print('%s : %d photos labeled' % (name_char, len(glob.glob('./characters/%s/*' % name_char))))
+                    
                     elif where.lower() in ['right', 'r']:
                         plt.close()
                         plt.imshow(frame[:,int(frame.shape[1]/2):])
@@ -89,23 +90,22 @@ def labelized_data(to_shuffle=False, interactive=False):
                         plt.close()
                         if name.lower() not in ['no','n','']:
                             name_char = get_character_name(name)
-                            title = './characters/%s/pic_%s_%d.jpg' % (name_char, 
-                                                           fname.split('/')[1].split('.')[0], np.random.randint(10000))
+                            name_new_pic = 'pic_{:04d}.jpg'.format(len(glob.glob('./characters/%s/*'% name_char)))
+                            title = './characters/%s/%s' % (name_char, name_new_pic)
                             cv2.imwrite(title, frame[:,int(frame.shape[1]/2):])
                             print('Saved at %s' % title)
-                            print('%s : %d photos labeled' % (name_char, len([k for k in glob.glob('./characters/%s/*' % name_char) 
-                                                                            if 'pic_video' in k or 'edited' in k ])))
+                            print('%s : %d photos labeled' % (name_char, len(glob.glob('./characters/%s/*' % name_char))))
+                    
                     elif where.lower() in ['full', 'f']:
                         name = input('Name ?[Name or No] ')
                         plt.close()
                         if name.lower() not in ['no','n','']:
                             name_char = get_character_name(name)
-                            title = './characters/%s/pic_%s_%d.jpg' % (name_char, 
-                                                           fname.split('/')[1].split('.')[0], np.random.randint(10000))
+                            name_new_pic = 'pic_{:04d}.jpg'.format(len(glob.glob('./characters/%s/*'% name_char)))
+                            title = './characters/%s/%s' % (name_char, name_new_pic)
                             cv2.imwrite(title,  frame)
                             print('Saved at %s' % title)
-                            print('%s : %d photos labeled' % (name_char, len([k for k in glob.glob('./characters/%s/*' % name_char) 
-                                                                            if 'pic_video' in k or 'edited' in k ])))
+                            print('%s : %d photos labeled' % (name_char, len(glob.glob('./characters/%s/*'% name_char))))
         except Exception as e:
             if e == KeyboardInterrupt:
                 return
