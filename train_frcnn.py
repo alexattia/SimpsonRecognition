@@ -83,7 +83,8 @@ rpn_accuracy_rpn_monitor, rpn_accuracy_for_epoch = [], []
 t0 = start_time = time.time()
 
 best_loss = np.Inf
-target_text_file = open('out.txt', 'w')
+with open('out.txt', 'w') as f:
+    f.write('%s loss/accuracy history\n' % time.time())
 
 try:
     for epoch_num in range(num_epochs):
@@ -166,6 +167,7 @@ try:
                         print('Loss Detector regression: {}'.format(loss_class_regr))
                         print('Elapsed time: {}'.format(time.time() - start_time))
 
+                        target_text_file = open('out.txt', 'a')
                         target_text_file.write('Accuracy: {}, RPN classifier: {}, RPN regression: {}, Detector classifier: {}, Detector regression: {}, Total: {}'.format(
                                                 class_acc, loss_rpn_cls, loss_rpn_regr, loss_class_cls, loss_class_regr, 
                                                 loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr))
