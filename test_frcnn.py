@@ -68,7 +68,7 @@ def get_models(C):
     model_classifier.compile(optimizer='sgd', loss='mse')
     return model_rpn, model_classifier, model_classifier_only
 
-def detect_predict(pic, C, model_rpn, model_classifier, model_classifier_only, class_mapping, class_to_color, print_dets=False):
+def detect_predict(pic, C, model_rpn, model_classifier, model_classifier_only, class_mapping, class_to_color, print_dets=False, export=False):
     """
     Detect and predict object in the picture
     :param pic: picture numpy array
@@ -146,40 +146,55 @@ def detect_predict(pic, C, model_rpn, model_classifier, model_classifier_only, c
             probs[cls_name].append(np.max(P_cls[0, ii, :]))
 
     all_dets = []
+    boxes_export = {}
     for key in bboxes:
         bbox = np.array(bboxes[key])
-
+        # Eliminating redundant object detection windows
         new_boxes, new_probs = roi_helpers.non_max_suppression_fast(bbox, np.array(probs[key]), overlap_thresh=overlap_thresh)
+        
+        # Keep only the best prediction per character
         jk = np.argmax(new_probs)
+        
+        # Threshold for best prediction
         if new_probs[jk] > 0.55:
             (x1, y1, x2, y2) = new_boxes[jk,:]
 
+            # Convert predicted picture box coordinates to real-size picture coordinates
             (real_x1, real_y1, real_x2, real_y2) = get_real_coordinates(ratio, x1, y1, x2, y2)
+            
+            # Exporting box coordinates instead of draw on the picture
+            if export:
+                boxes_export[key] = [(real_x1, real_y1, real_x2, real_y2), int(100*new_probs[jk])]
 
-            cv2.rectangle(img,(real_x1, real_y1), (real_x2, real_y2), (int(class_to_color[key][0]), int(class_to_color[key][1]), int(class_to_color[key][2])),2)
-
-            textLabel = '{}: {}%'.format(key,int(100*new_probs[jk]))
-            all_dets.append((key,100*new_probs[jk]))
-
-            (retval,baseLine) = cv2.getTextSize(textLabel,cv2.FONT_HERSHEY_COMPLEX,1,1)
-
-            # To avoid putting text outside the frame
-            # replace the legende if the box is outside the image
-            if real_y1 < 20 and real_y2 < img.shape[0]:
-                textOrg = (real_x1, real_y2+5)
-                
-            elif real_y1 < 20 and real_y2 > img.shape[0]:
-                textOrg = (real_x1, img.shape[0]-10)
             else:
-                textOrg = (real_x1, real_y1+5)
+                cv2.rectangle(img,(real_x1, real_y1), (real_x2, real_y2), (int(class_to_color[key][0]), int(class_to_color[key][1]), int(class_to_color[key][2])),2)
 
-            cv2.rectangle(img, (textOrg[0] - 5, textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 0, 0), 2)
-            cv2.rectangle(img, (textOrg[0] - 5,textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (255, 255, 255), -1)
-            cv2.putText(img, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
+                textLabel = '{}: {}%'.format(key,int(100*new_probs[jk]))
+                all_dets.append((key,100*new_probs[jk]))
+
+                (retval,baseLine) = cv2.getTextSize(textLabel,cv2.FONT_HERSHEY_COMPLEX,1,1)
+
+                # To avoid putting text outside the frame
+                # replace the legende if the box is outside the image
+                if real_y1 < 20 and real_y2 < img.shape[0]:
+                    textOrg = (real_x1, real_y2+5)
+                    
+                elif real_y1 < 20 and real_y2 > img.shape[0]:
+                    textOrg = (real_x1, img.shape[0]-10)
+                else:
+                    textOrg = (real_x1, real_y1+5)
+
+                cv2.rectangle(img, (textOrg[0] - 5, textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 0, 0), 2)
+                cv2.rectangle(img, (textOrg[0] - 5,textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (255, 255, 255), -1)
+                cv2.putText(img, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
+
 
     if print_dets:
         print(all_dets)
-    return img
+    if export:
+        return boxes_export
+    else:
+        return img
 
 if __name__ == "__main__":
     parser = OptionParser()

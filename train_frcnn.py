@@ -83,8 +83,9 @@ rpn_accuracy_rpn_monitor, rpn_accuracy_for_epoch = [], []
 t0 = start_time = time.time()
 
 best_loss = np.Inf
-with open('out.txt', 'w') as f:
-    f.write('%s loss/accuracy history\n' % time.time())
+with open('out.csv', 'w') as f:
+    f.write('Accuracy,RPN classifier,RPN regression,Detector classifier,Detector regression,Total')
+    f.write('\t')
 
 try:
     for epoch_num in range(num_epochs):
@@ -167,11 +168,11 @@ try:
                         print('Loss Detector regression: {}'.format(loss_class_regr))
                         print('Elapsed time: {}'.format(time.time() - start_time))
 
-                        target_text_file = open('out.txt', 'a')
-                        target_text_file.write('Accuracy: {}, RPN classifier: {}, RPN regression: {}, Detector classifier: {}, Detector regression: {}, Total: {}'.format(
-                                                class_acc, loss_rpn_cls, loss_rpn_regr, loss_class_cls, loss_class_regr, 
-                                                loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr))
-                        target_text_file.write('\n')
+                    target_text_file = open('out.csv', 'a')
+                    target_text_file.write('{},{},{},{},{},{}'.format(class_acc, loss_rpn_cls, 
+                                            loss_rpn_regr, loss_class_cls, loss_class_regr, 
+                                            loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr))
+                    target_text_file.write('\t')
 
                     curr_loss = loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr
                     iter_num = 0
